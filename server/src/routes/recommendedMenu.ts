@@ -1296,7 +1296,7 @@ Return VALID JSON in this format:
       }
 
       const response = await openai.chat.completions.create({
-        model: "gpt-4",
+        model: "gpt-5",
         messages: [
           {
             role: "system",
