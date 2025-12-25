@@ -1000,4 +1000,130 @@ Generate a COMPLETE new menu in JSON format with the same structure as before, b
         return 3;
     }
   }
+
+  static async checkMenuCompletion(
+    userId: string,
+    menuId: string
+  ): Promise<MenuCompletionSummary> {
+    try {
+      console.log("📊 Checking menu completion for:", { userId, menuId });
+
+      const menu = await prisma.recommendedMenu.findFirst({
+        where: {
+          menu_id: menuId,
+          user_id: userId,
+        },
+        include: {
+          meals: {
+            include: {
+              ingredients: true,
+            },
+            orderBy: [{ day_number: "asc" }, { meal_type: "asc" }],
+          },
+        },
+      });
+
+      if (!menu) {
+        throw new Error("Menu not found");
+      }
+
+      const mealCompletions = await prisma.mealCompletion.findMany({
+        where: {
+          user_id: userId,
+          menu_id: menuId,
+        },
+      });
+
+      const totalMeals = menu.meals.length;
+      const completedMeals = menu.meals.filter((meal) =>
+        mealCompletions.some(
+          (completion) =>
+            completion.day_number === meal.day_number &&
+            completion.meal_type === meal.meal_type
+        )
+      ).length;
+
+      const completionRate =
+        totalMeals > 0 ? (completedMeals / totalMeals) * 100 : 0;
+
+      const totalCalories = menu.meals.reduce(
+        (sum, meal) => sum + meal.calories,
+        0
+      );
+      const totalProtein = menu.meals.reduce(
+        (sum, meal) => sum + meal.protein,
+        0
+      );
+      const totalCarbs = menu.meals.reduce((sum, meal) => sum + meal.carbs, 0);
+      const totalFat = menu.meals.reduce((sum, meal) => sum + meal.fat, 0);
+
+      const avgCaloriesPerDay = totalCalories / menu.days_count;
+      const avgProteinPerDay = totalProtein / menu.days_count;
+
+      const dailyBreakdown = Array.from({ length: menu.days_count }).map(
+        (_, dayIndex) => {
+          const dayNumber = dayIndex + 1;
+          const dayMeals = menu.meals.filter(
+            (meal) => meal.day_number === dayNumber
+          );
+
+          const dayCompletedMeals = dayMeals.filter((meal) =>
+            mealCompletions.some(
+              (completion) =>
+                completion.day_number === meal.day_number &&
+                completion.meal_type === meal.meal_type
+            )
+          ).length;
+
+          const dayCalories = dayMeals.reduce(
+            (sum, meal) => sum + meal.calories,
+            0
+          );
+          const dayProtein = dayMeals.reduce(
+            (sum, meal) => sum + meal.protein,
+            0
+          );
+          const dayCarbs = dayMeals.reduce((sum, meal) => sum + meal.carbs, 0);
+          const dayFat = dayMeals.reduce((sum, meal) => sum + meal.fat, 0);
+
+          const dayDate = new Date(menu.start_date || new Date());
+          dayDate.setDate(dayDate.getDate() + dayIndex);
+
+          return {
+            day: dayNumber,
+            date: dayDate.toISOString().split("T")[0],
+            meals_completed: dayCompletedMeals,
+            calories: dayCalories,
+            protein: dayProtein,
+            carbs: dayCarbs,
+            fat: dayFat,
+          };
+        }
+      );
+
+      const completionSummary: MenuCompletionSummary = {
+        menu_id: menu.menu_id,
+        title: menu.title,
+        total_days: menu.days_count,
+        start_date: menu.start_date ? new Date(menu.start_date) : new Date(),
+        end_date: menu.end_date ? new Date(menu.end_date) : new Date(),
+        total_meals: totalMeals,
+        completed_meals: completedMeals,
+        completion_rate: Math.round(completionRate * 100) / 100,
+        total_calories: totalCalories,
+        avg_calories_per_day: Math.round(avgCaloriesPerDay),
+        total_protein: totalProtein,
+        avg_protein_per_day: Math.round(avgProteinPerDay * 10) / 10,
+        total_carbs: totalCarbs,
+        total_fat: totalFat,
+        daily_breakdown: dailyBreakdown,
+      };
+
+      console.log("✅ Menu completion summary calculated:", completionSummary);
+      return completionSummary;
+    } catch (error) {
+      console.error("💥 Error checking menu completion:", error);
+      throw error;
+    }
+  }
 }

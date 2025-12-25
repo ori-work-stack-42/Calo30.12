@@ -742,7 +742,10 @@ export default function ActiveMenu() {
       };
 
       // Send swap request to server
-      const response = await mealPlanAPI.swapMeal(planId as string, swapRequestBody);
+      const response = await mealPlanAPI.swapMeal(
+        planId as string,
+        swapRequestBody
+      );
 
       if (response.success) {
         ToastService.success(
@@ -1681,7 +1684,10 @@ export default function ActiveMenu() {
         <View
           style={[
             styles.enhancedModalContainer,
-            { backgroundColor: colors.card, maxWidth: screenWidth > 600 ? 500 : screenWidth - 40 },
+            {
+              backgroundColor: colors.card,
+              maxWidth: screenWidth > 600 ? 500 : screenWidth - 40,
+            },
           ]}
         >
           <View style={styles.modalHeader}>
@@ -1713,7 +1719,7 @@ export default function ActiveMenu() {
                 <ActivityIndicator size="large" color={colors.emerald500} />
                 <Text
                   style={[
-                    styles.modalText,
+                    styles.textInput,
                     { color: colors.text, marginTop: 16 },
                   ]}
                 >
@@ -1727,7 +1733,7 @@ export default function ActiveMenu() {
                 <AlertCircle size={48} color={colors.error} />
                 <Text
                   style={[
-                    styles.modalText,
+                    styles.textInput,
                     { color: colors.error, marginTop: 16, textAlign: "center" },
                   ]}
                 >
@@ -1880,7 +1886,8 @@ export default function ActiveMenu() {
                     { backgroundColor: colors.emerald500 },
                   ]}
                   onPress={() => {
-                    if (selectedMeal) { // Use selectedMeal for clarity
+                    if (selectedMeal) {
+                      // Use selectedMeal for clarity
                       handleSwapMeal(
                         selectedMeal,
                         getDayNames()[selectedDay],
